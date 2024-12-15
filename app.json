@@ -36,6 +36,15 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "a76f6c3e-1322-41ea-b133-e46b7b7719b4"
+      }
+    },
+    "owner": "barkli1"
   }
 }
