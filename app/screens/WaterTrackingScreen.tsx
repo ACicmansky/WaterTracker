@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FontAwesome5 } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 
 const WATER_STORAGE_KEY = '@water_intake';
+const TARGET_KEY = '@daily_target';
 const GLASS_SIZES = [
   { size: 100, icon: 'coffee', label: 'Small Cup' },
   { size: 200, icon: 'wine-glass', label: 'Glass' },
@@ -11,14 +13,23 @@ const GLASS_SIZES = [
   { size: 400, icon: 'flask', label: 'Large Glass' },
   { size: 650, icon: 'water', label: 'Bottle' }
 ];
+const DEFAULT_TARGET = 2500;
 
 export default function WaterTrackingScreen() {
   const [waterIntake, setWaterIntake] = useState(0);
   const [glassSize, setGlassSize] = useState(250);
   const [showSizeModal, setShowSizeModal] = useState(false);
+  const [dailyTarget, setDailyTarget] = useState(DEFAULT_TARGET);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadDailyTarget();
+    }, [])
+  );
 
   useEffect(() => {
     loadWaterIntake();
+    loadDailyTarget();
   }, []);
 
   const loadWaterIntake = async () => {
@@ -29,6 +40,15 @@ export default function WaterTrackingScreen() {
       }
     } catch (error) {
       console.error('Error loading water intake:', error);
+    }
+  };
+
+  const loadDailyTarget = async () => {
+    try {
+      const savedTarget = await AsyncStorage.getItem(TARGET_KEY);
+      savedTarget ? setDailyTarget(parseInt(savedTarget)) : setDailyTarget(DEFAULT_TARGET);
+    } catch (error) {
+      console.error('Error loading daily target:', error);
     }
   };
 
@@ -66,22 +86,30 @@ export default function WaterTrackingScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Water Tracker</Text>
-      
+
       <View style={styles.statsContainer}>
         <Text style={styles.intakeText}>{waterIntake}ml</Text>
-        <Text style={styles.targetText}>Daily Goal: 2000ml</Text>
+        <Text style={styles.targetText}>Daily Target: {dailyTarget}ml</Text>
+        <View style={styles.progressContainer}>
+          <View
+            style={[
+              styles.progressBar,
+              { width: `${Math.min((waterIntake / dailyTarget) * 100, 100)}%` }
+            ]}
+          />
+        </View>
       </View>
 
       <View style={styles.buttonsContainer}>
-        <TouchableOpacity 
-          style={styles.button} 
+        <TouchableOpacity
+          style={styles.button}
           onPress={removeWater}
         >
           <FontAwesome5 name="minus" size={24} color="white" />
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={styles.glassButton} 
+        <TouchableOpacity
+          style={styles.glassButton}
           onPress={() => setShowSizeModal(true)}
         >
           <View style={styles.glassIconContainer}>
@@ -94,8 +122,8 @@ export default function WaterTrackingScreen() {
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={styles.button} 
+        <TouchableOpacity
+          style={styles.button}
           onPress={addWater}
         >
           <FontAwesome5 name="plus" size={24} color="white" />
@@ -108,7 +136,7 @@ export default function WaterTrackingScreen() {
         visible={showSizeModal}
         onRequestClose={() => setShowSizeModal(false)}
       >
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.modalOverlay}
           activeOpacity={1}
           onPress={() => {
@@ -119,8 +147,8 @@ export default function WaterTrackingScreen() {
         >
           <View style={styles.bottomSheet}>
             <View style={styles.bottomSheetHandle} />
-            <ScrollView 
-              horizontal 
+            <ScrollView
+              horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.horizontalScrollContent}
               style={styles.scrollView}
@@ -134,10 +162,10 @@ export default function WaterTrackingScreen() {
                   ]}
                   onPress={() => selectGlassSize(item.size)}
                 >
-                  <FontAwesome5 
-                    name={item.icon} 
-                    size={32} 
-                    color={item.size === glassSize ? 'white' : '#333'} 
+                  <FontAwesome5
+                    name={item.icon}
+                    size={32}
+                    color={item.size === glassSize ? 'white' : '#333'}
                   />
                   <Text style={[
                     styles.sizeOptionLabel,
@@ -187,6 +215,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     marginTop: 10,
+  },
+  progressContainer: {
+    width: '100%',
+    height: 10,
+    backgroundColor: '#ddd',
+    borderRadius: 5,
+    overflow: 'hidden',
+    marginTop: 20,
+  },
+  progressBar: {
+    height: 10,
+    backgroundColor: '#2196F3',
   },
   buttonsContainer: {
     flexDirection: 'row',
