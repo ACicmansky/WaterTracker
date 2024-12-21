@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, Platform } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { calculateDailyWaterTarget } from '../utils/waterCalculations';
+import { calculateDailyWaterTarget } from '../../utils/waterCalculations';
+import { ClimateOptions } from '../../enums/climateOptions';
 
 const WEIGHT_KEY = '@user_weight';
 const CLIMATE_KEY = '@user_climate';
@@ -11,17 +12,17 @@ const TARGET_KEY = '@daily_target';
 
 const CLIMATE_OPTIONS = [
   { label: 'Select climate...', value: '' },
-  { label: 'Hot', value: 'hot' },
-  { label: 'Humid', value: 'humid' },
-  { label: 'Mild', value: 'mild' },
-  { label: 'Cold', value: 'cold' },
+  { label: ClimateOptions.Hot, value: ClimateOptions.Hot },
+  { label: ClimateOptions.Humid, value: ClimateOptions.Humid },
+  { label: ClimateOptions.Mild, value: ClimateOptions.Mild },
+  { label: ClimateOptions.Cold, value: ClimateOptions.Cold },
 ];
 
 const GENDER_OPTIONS = [
   { label: 'Select gender...', value: '' },
-  { label: 'Female', value: 'female' },
-  { label: 'Male', value: 'male' },
-  { label: 'Other', value: 'other' },
+  { label: 'Female', value: 'Female' },
+  { label: 'Male', value: 'Male' },
+  { label: 'Other', value: 'Other' },
 ];
 
 export default function ProfileScreen() {
