@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, TextInput, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -14,12 +14,19 @@ const GLASS_SIZES = [
   { size: 650, icon: 'water', label: 'Bottle' }
 ];
 const DEFAULT_TARGET = 2500;
+const AVAILABLE_ICONS = [
+  'glass', 'wine-glass', 'wine-glass-alt', 'coffee', 'flask', 'water', 'beer', 'mug-hot',
+  'glass-whiskey', 'glass-martini', 'glass-martini-alt', 'glass-cheers'
+];
 
 export default function WaterTrackingScreen() {
   const [waterIntake, setWaterIntake] = useState(0);
   const [glassSize, setGlassSize] = useState(250);
   const [showSizeModal, setShowSizeModal] = useState(false);
   const [dailyTarget, setDailyTarget] = useState(DEFAULT_TARGET);
+  const [customSize, setCustomSize] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [selectedIcon, setSelectedIcon] = useState('glass');
 
   useFocusEffect(
     React.useCallback(() => {
@@ -71,16 +78,25 @@ export default function WaterTrackingScreen() {
     saveWaterIntake(newAmount);
   };
 
-  const selectGlassSize = (size: number) => {
+  const selectGlassSize = (size: number, icon?: string) => {
     setGlassSize(size);
-    setTimeout(() => {
-      setShowSizeModal(false);
-    }, 150);
+    if (icon) {
+      const newGlass = { size, icon, label: `${size}ml Glass` };
+      GLASS_SIZES.push(newGlass);
+      GLASS_SIZES.sort((a, b) => a.size - b.size);
+    }
+    setShowCustomInput(false);
+    setCustomSize('');
+    setShowSizeModal(false);
   };
 
   const getCurrentGlassIcon = () => {
     const currentGlass = GLASS_SIZES.find(g => g.size === glassSize) || GLASS_SIZES[1];
     return currentGlass.icon;
+  };
+
+  const getSortedGlasses = () => {
+    return [...GLASS_SIZES].sort((a, b) => a.size - b.size);
   };
 
   return (
@@ -140,48 +156,102 @@ export default function WaterTrackingScreen() {
           style={styles.modalOverlay}
           activeOpacity={1}
           onPress={() => {
-            setTimeout(() => {
+            if (!showCustomInput) {
               setShowSizeModal(false);
-            }, 150);
+              setShowCustomInput(false);
+              setCustomSize('');
+            }
           }}
         >
-          <View style={styles.bottomSheet}>
+          <View style={styles.bottomSheet} onStartShouldSetResponder={() => true}>
             <View style={styles.bottomSheetHandle} />
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalScrollContent}
-              style={styles.scrollView}
+              contentContainerStyle={styles.sizesContainer}
             >
-              {GLASS_SIZES.map((item) => (
+              {getSortedGlasses().map((glass) => (
                 <TouchableOpacity
-                  key={item.size}
+                  key={glass.size}
                   style={[
-                    styles.sizeOptionHorizontal,
-                    item.size === glassSize && styles.selectedSize
+                    styles.sizeOption,
+                    glassSize === glass.size && styles.selectedSize,
                   ]}
-                  onPress={() => selectGlassSize(item.size)}
+                  onPress={() => selectGlassSize(glass.size)}
                 >
-                  <FontAwesome5
-                    name={item.icon}
-                    size={32}
-                    color={item.size === glassSize ? 'white' : '#333'}
-                  />
-                  <Text style={[
-                    styles.sizeOptionLabel,
-                    item.size === glassSize && styles.selectedSizeText
-                  ]}>
-                    {item.label}
-                  </Text>
-                  <Text style={[
-                    styles.sizeOptionVolume,
-                    item.size === glassSize && styles.selectedSizeText
-                  ]}>
-                    {item.size}ml
-                  </Text>
+                  <FontAwesome5 name={glass.icon} size={32} color="#2196F3" />
+                  <Text style={styles.sizeText}>{glass.size}ml</Text>
+                  <Text style={styles.sizeLabel}>{glass.label}</Text>
                 </TouchableOpacity>
               ))}
+              <TouchableOpacity
+                style={[styles.sizeOption, showCustomInput && styles.selectedSize]}
+                onPress={() => setShowCustomInput(true)}
+              >
+                <FontAwesome5 name="plus-circle" size={32} color="#2196F3" />
+                <Text style={styles.sizeText}>Custom</Text>
+                <Text style={styles.sizeLabel}>Size</Text>
+              </TouchableOpacity>
             </ScrollView>
+            {showCustomInput && (
+              <View style={styles.customInputContainer}>
+                <View style={styles.inputRow}>
+                  <TextInput
+                    style={styles.customInput}
+                    keyboardType="number-pad"
+                    placeholder="Enter size in ml"
+                    value={customSize}
+                    onChangeText={setCustomSize}
+                  />
+                  <TouchableOpacity
+                    style={[
+                      styles.customSizeButton,
+                      !customSize && styles.customSizeButtonDisabled
+                    ]}
+                    disabled={!customSize}
+                    onPress={() => {
+                      const size = parseInt(customSize);
+                      if (size > 0 && size <= 2000) {
+                        selectGlassSize(size, selectedIcon);
+                        setShowCustomInput(false);
+                        setCustomSize('');
+                        setShowSizeModal(false);
+                      } else {
+                        Alert.alert('Invalid Size', 'Please enter a size between 1 and 2000 ml');
+                      }
+                    }}
+                  >
+                    <Text style={[
+                      styles.customSizeButtonText,
+                      !customSize && styles.customSizeButtonTextDisabled
+                    ]}>Add</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.iconSelectorContainer}>
+                  <Text style={styles.iconSelectorTitle}>Choose an icon:</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    <View style={styles.iconGrid}>
+                      {AVAILABLE_ICONS.map((icon) => (
+                        <TouchableOpacity
+                          key={icon}
+                          style={[
+                            styles.iconOption,
+                            selectedIcon === icon && styles.selectedIconOption
+                          ]}
+                          onPress={() => setSelectedIcon(icon)}
+                        >
+                          <FontAwesome5
+                            name={icon}
+                            size={24}
+                            color={selectedIcon === icon ? '#2196F3' : '#666'}
+                          />
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </ScrollView>
+                </View>
+              </View>
+            )}
           </View>
         </TouchableOpacity>
       </Modal>
@@ -302,40 +372,97 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: 15,
   },
-  scrollView: {
-    flexGrow: 0,
+  customInputContainer: {
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
   },
-  horizontalScrollContent: {
-    paddingHorizontal: 10,
-    flexGrow: 1,
-    justifyContent: 'center',
-  },
-  sizeOptionHorizontal: {
-    backgroundColor: '#f0f0f0',
-    borderRadius: 15,
-    padding: 15,
-    marginHorizontal: 8,
+  inputRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    width: 110,
-    height: 120,
+    marginBottom: 15,
+  },
+  customInput: {
+    flex: 1,
+    height: 40,
+    borderWidth: 1,
+    borderColor: '#2196F3',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginRight: 10,
+  },
+  customSizeButton: {
+    backgroundColor: '#2196F3',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  customSizeButtonDisabled: {
+    backgroundColor: '#cccccc',
+  },
+  customSizeButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  customSizeButtonTextDisabled: {
+    color: '#666666',
+  },
+  sizesContainer: {
+    padding: 20,
+  },
+  sizeOption: {
+    alignItems: 'center',
     justifyContent: 'center',
-  },
-  sizeOptionLabel: {
-    fontSize: 16,
-    color: '#333',
-    marginTop: 10,
-    textAlign: 'center',
-  },
-  sizeOptionVolume: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
-    textAlign: 'center',
+    padding: 15,
+    borderRadius: 12,
+    marginHorizontal: 8,
+    backgroundColor: '#f5f5f5',
+    width: 100,
   },
   selectedSize: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#e3f2fd',
+    borderWidth: 2,
+    borderColor: '#2196F3',
   },
-  selectedSizeText: {
-    color: 'white',
+  sizeText: {
+    marginTop: 8,
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2196F3',
+  },
+  sizeLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+  },
+  iconSelectorContainer: {
+    marginTop: 10,
+  },
+  iconSelectorTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 10,
+    color: '#333',
+  },
+  iconGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+  },
+  iconOption: {
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 25,
+    backgroundColor: '#f5f5f5',
+    marginRight: 10,
+    marginBottom: 10,
+  },
+  selectedIconOption: {
+    backgroundColor: '#e3f2fd',
+    borderWidth: 2,
+    borderColor: '#2196F3',
   },
 });
