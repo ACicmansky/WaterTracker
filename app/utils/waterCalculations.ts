@@ -8,7 +8,7 @@ export const calculateDailyWaterTarget = (weight: number, climate: string, gende
   const climateMultipliers = {
     hot: 1.3,     // Increase by 30% for hot climates
     humid: 1.2,   // Increase by 20% for humid climates
-    temperate: 1, // No adjustment for temperate climates
+    mild: 1, // No adjustment for temperate climates
     cold: 0.9,    // Decrease by 10% for cold climates
   };
 

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, Platform } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
 import { calculateDailyWaterTarget } from '../utils/waterCalculations';
 
 const WEIGHT_KEY = '@user_weight';
@@ -13,8 +12,8 @@ const TARGET_KEY = '@daily_target';
 const CLIMATE_OPTIONS = [
   { label: 'Select climate...', value: '' },
   { label: 'Hot', value: 'hot' },
-  { label: 'Temperate', value: 'temperate' },
   { label: 'Humid', value: 'humid' },
+  { label: 'Mild', value: 'mild' },
   { label: 'Cold', value: 'cold' },
 ];
 
@@ -30,7 +29,6 @@ export default function ProfileScreen() {
   const [climate, setClimate] = useState('');
   const [gender, setGender] = useState('');
   const [waterTarget, setWaterTarget] = useState(0);
-  const navigation = useNavigation();
 
   useEffect(() => {
     loadUserData();
@@ -61,7 +59,7 @@ export default function ProfileScreen() {
       if (currentWeight) {
         const target = calculateDailyWaterTarget(
           parseFloat(currentWeight),
-          currentClimate || 'temperate',
+          currentClimate || 'mild',
           currentGender || 'other'
         );
         await AsyncStorage.setItem(TARGET_KEY, target.toString());
