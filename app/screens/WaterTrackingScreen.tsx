@@ -1,22 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, TextInput, Alert, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 
 const WATER_STORAGE_KEY = '@water_intake';
 const TARGET_KEY = '@daily_target';
-const GLASS_SIZES = [
+const GLASS_SIZES_KEY = '@glass_sizes';
+const DEFAULT_TARGET = 2500;
+const AVAILABLE_ICONS = [
+  'glass', 'wine-glass', 'wine-glass-alt', 'coffee', 'flask', 'water', 'beer', 'mug-hot',
+  'glass-whiskey', 'glass-martini', 'glass-martini-alt', 'glass-cheers'
+];
+
+const DEFAULT_GLASS_SIZES = [
   { size: 100, icon: 'coffee', label: 'Small Cup' },
   { size: 200, icon: 'wine-glass', label: 'Glass' },
   { size: 300, icon: 'wine-glass-alt', label: 'Tall Glass' },
   { size: 400, icon: 'flask', label: 'Large Glass' },
   { size: 650, icon: 'water', label: 'Bottle' }
-];
-const DEFAULT_TARGET = 2500;
-const AVAILABLE_ICONS = [
-  'glass', 'wine-glass', 'wine-glass-alt', 'coffee', 'flask', 'water', 'beer', 'mug-hot',
-  'glass-whiskey', 'glass-martini', 'glass-martini-alt', 'glass-cheers'
 ];
 
 export default function WaterTrackingScreen() {
@@ -27,6 +29,7 @@ export default function WaterTrackingScreen() {
   const [customSize, setCustomSize] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [selectedIcon, setSelectedIcon] = useState('glass');
+  const [glassSizes, setGlassSizes] = useState(DEFAULT_GLASS_SIZES);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -37,6 +40,7 @@ export default function WaterTrackingScreen() {
   useEffect(() => {
     loadWaterIntake();
     loadDailyTarget();
+    loadGlassSizes();
   }, []);
 
   const loadWaterIntake = async () => {
@@ -59,12 +63,38 @@ export default function WaterTrackingScreen() {
     }
   };
 
+  const loadGlassSizes = async () => {
+    try {
+      const savedSizes = await AsyncStorage.getItem(GLASS_SIZES_KEY);
+      if (savedSizes) {
+        const parsedSizes = JSON.parse(savedSizes);
+        setGlassSizes(parsedSizes);
+        // Set initial glass size to the first available size if current size isn't in the list
+        const sizes = parsedSizes.map((g: any) => g.size);
+        if (!sizes.includes(glassSize)) {
+          setGlassSize(sizes[0] || 200);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading glass sizes:', error);
+    }
+  };
+
   const saveWaterIntake = async (amount: number) => {
     try {
       await AsyncStorage.setItem(WATER_STORAGE_KEY, amount.toString());
       setWaterIntake(amount);
     } catch (error) {
       console.error('Error saving water intake:', error);
+    }
+  };
+
+  const saveGlassSizes = async (newSizes: typeof DEFAULT_GLASS_SIZES) => {
+    try {
+      await AsyncStorage.setItem(GLASS_SIZES_KEY, JSON.stringify(newSizes));
+      setGlassSizes(newSizes);
+    } catch (error) {
+      console.error('Error saving glass sizes:', error);
     }
   };
 
@@ -82,21 +112,55 @@ export default function WaterTrackingScreen() {
     setGlassSize(size);
     if (icon) {
       const newGlass = { size, icon, label: `${size}ml Glass` };
-      GLASS_SIZES.push(newGlass);
-      GLASS_SIZES.sort((a, b) => a.size - b.size);
+      const newGlassSizes = [...glassSizes, newGlass].sort((a, b) => a.size - b.size);
+      saveGlassSizes(newGlassSizes);
     }
     setShowCustomInput(false);
     setCustomSize('');
     setShowSizeModal(false);
   };
 
+  const removeGlassSize = (sizeToRemove: number) => {
+    const newGlassSizes = glassSizes.filter(g => g.size !== sizeToRemove);
+    saveGlassSizes(newGlassSizes);
+    // If the current glass size is removed, set to the default (200ml)
+    if (glassSize === sizeToRemove) {
+      setGlassSize(200);
+    }
+  };
+
+  const handleRemoveGlass = (size: number) => {
+    if (Platform.OS === 'web') {
+      const confirmRemove = window.confirm(`Are you sure you want to remove the ${size}ml glass?`);
+      if (confirmRemove) {
+        removeGlassSize(size);
+      }
+    } else {
+      Alert.alert(
+        'Remove Glass Size',
+        `Are you sure you want to remove the ${size}ml glass?`,
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel'
+          },
+          {
+            text: 'Remove',
+            onPress: () => removeGlassSize(size),
+            style: 'destructive'
+          }
+        ]
+      );
+    }
+  };
+
   const getCurrentGlassIcon = () => {
-    const currentGlass = GLASS_SIZES.find(g => g.size === glassSize) || GLASS_SIZES[1];
+    const currentGlass = glassSizes.find(g => g.size === glassSize) || glassSizes[1];
     return currentGlass.icon;
   };
 
   const getSortedGlasses = () => {
-    return [...GLASS_SIZES].sort((a, b) => a.size - b.size);
+    return [...glassSizes].sort((a, b) => a.size - b.size);
   };
 
   return (
@@ -171,18 +235,25 @@ export default function WaterTrackingScreen() {
               contentContainerStyle={styles.sizesContainer}
             >
               {getSortedGlasses().map((glass) => (
-                <TouchableOpacity
-                  key={glass.size}
-                  style={[
-                    styles.sizeOption,
-                    glassSize === glass.size && styles.selectedSize,
-                  ]}
-                  onPress={() => selectGlassSize(glass.size)}
-                >
-                  <FontAwesome5 name={glass.icon} size={32} color="#2196F3" />
-                  <Text style={styles.sizeText}>{glass.size}ml</Text>
-                  <Text style={styles.sizeLabel}>{glass.label}</Text>
-                </TouchableOpacity>
+                <View key={glass.size} style={styles.sizeOptionContainer}>
+                  <TouchableOpacity
+                    style={[
+                      styles.sizeOption,
+                      glassSize === glass.size && styles.selectedSize,
+                    ]}
+                    onPress={() => selectGlassSize(glass.size)}
+                  >
+                    <FontAwesome5 name={glass.icon} size={32} color="#2196F3" />
+                    <Text style={styles.sizeText}>{glass.size}ml</Text>
+                    <Text style={styles.sizeLabel}>{glass.label}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.removeBadge}
+                    onPress={() => handleRemoveGlass(glass.size)}
+                  >
+                    <FontAwesome5 name="times" size={10} color="white" />
+                  </TouchableOpacity>
+                </View>
               ))}
               <TouchableOpacity
                 style={[styles.sizeOption, showCustomInput && styles.selectedSize]}
@@ -410,12 +481,15 @@ const styles = StyleSheet.create({
   sizesContainer: {
     padding: 20,
   },
+  sizeOptionContainer: {
+    position: 'relative',
+    marginHorizontal: 8,
+  },
   sizeOption: {
     alignItems: 'center',
     justifyContent: 'center',
     padding: 15,
     borderRadius: 12,
-    marginHorizontal: 8,
     backgroundColor: '#f5f5f5',
     width: 100,
   },
@@ -464,5 +538,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#e3f2fd',
     borderWidth: 2,
     borderColor: '#2196F3',
+  },
+  removeBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: '#ff4444',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 2,
+    zIndex: 1,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
   },
 });
