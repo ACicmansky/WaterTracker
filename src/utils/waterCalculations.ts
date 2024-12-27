@@ -1,4 +1,4 @@
-import { ClimateOptions } from '@constants/enums/climateOptions.enum';
+import { ClimateOptions } from '@/constants/enums/ClimateOptions.enum';
 
 export const calculateDailyWaterTarget = (weight: number, climate: string, gender: string = 'other'): number => {
   // Base calculation: 30-35ml per kg of body weight

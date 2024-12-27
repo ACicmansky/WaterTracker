@@ -8,6 +8,7 @@
       "@hooks/*": ["./src/hooks/*"],
       "@constants/*": ["./src/constants/*"],
       "@utils/*": ["./src/utils/*"],
+      "@types/*": ["./src/types/*"],
     },
   },
   "include": [

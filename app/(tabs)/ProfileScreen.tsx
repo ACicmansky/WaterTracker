@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TextInput, Platform } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { calculateDailyWaterTarget } from '@utils/waterCalculations';
-import { ClimateOptions } from '@constants/enums/climateOptions.enum';
+import { ClimateOptions } from '@/constants/enums/ClimateOptions.enum';
 
 const WEIGHT_KEY = '@user_weight';
 const CLIMATE_KEY = '@user_climate';
