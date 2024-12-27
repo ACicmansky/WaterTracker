@@ -5,7 +5,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { FontAwesome5 } from '@expo/vector-icons';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { useColorScheme } from '@hooks/useColorScheme';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -43,7 +43,7 @@ export default function RootLayout() {
         }}
       >
         <Drawer.Screen
-          name="screens/WaterTrackingScreen"
+          name="(tabs)/WaterTrackingScreen"
           options={{
             drawerLabel: 'Home',
             headerTitle: 'Water Tracker',
@@ -56,7 +56,7 @@ export default function RootLayout() {
           }}
         />
         <Drawer.Screen
-          name="screens/ProfileScreen"
+          name="(tabs)/ProfileScreen"
           options={{
             drawerLabel: 'Profile',
             headerTitle: 'Profile',
