@@ -3,33 +3,22 @@ import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, TextInput,
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import { DEFAULT_INTAKE_TARGET, DEFAULT_CUP, DEFAULT_CUP_SIZES } from '@/constants/Defaults';
+import { WaterCup } from '@/types/WaterCup';
 
-const WATER_STORAGE_KEY = '@water_intake';
-const TARGET_KEY = '@daily_target';
-const GLASS_SIZES_KEY = '@glass_sizes';
-const DEFAULT_TARGET = 2500;
-const AVAILABLE_ICONS = [
-  'glass', 'wine-glass', 'wine-glass-alt', 'coffee', 'flask', 'water', 'beer', 'mug-hot',
-  'glass-whiskey', 'glass-martini', 'glass-martini-alt', 'glass-cheers'
-];
-
-const DEFAULT_GLASS_SIZES = [
-  { size: 100, icon: 'coffee', label: 'Small Cup' },
-  { size: 200, icon: 'wine-glass', label: 'Glass' },
-  { size: 300, icon: 'wine-glass-alt', label: 'Tall Glass' },
-  { size: 400, icon: 'flask', label: 'Large Glass' },
-  { size: 650, icon: 'water', label: 'Bottle' }
-];
+const WATER_INTAKE_KEY = '@water_intake';
+const DAILY_TARGET_KEY = '@daily_target';
+const CUP_SIZES_KEY = '@cup_sizes';
+const SELECTED_WATER_CUP_KEY = '@selected_water_cup';
 
 export default function WaterTrackingScreen() {
-  const [waterIntake, setWaterIntake] = useState(0);
-  const [glassSize, setGlassSize] = useState(250);
-  const [showSizeModal, setShowSizeModal] = useState(false);
-  const [dailyTarget, setDailyTarget] = useState(DEFAULT_TARGET);
-  const [customSize, setCustomSize] = useState('');
+  const [showCupSizeModal, setShowCupSizeModal] = useState(false);
   const [showCustomInput, setShowCustomInput] = useState(false);
-  const [selectedIcon, setSelectedIcon] = useState('glass');
-  const [glassSizes, setGlassSizes] = useState(DEFAULT_GLASS_SIZES);
+  const [dailyTarget, setDailyTarget] = useState(DEFAULT_INTAKE_TARGET);
+  const [selectedWaterCup, setSelectedWaterCup] = useState<WaterCup>(DEFAULT_CUP);
+  const [waterIntake, setWaterIntake] = useState<WaterCup[]>([]);
+  const [waterIntakeInMl, setWaterIntakeInMl] = useState<number>(0);
+  const [cupSizes, setCupSizes] = useState<WaterCup[]>(DEFAULT_CUP_SIZES);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -38,107 +27,118 @@ export default function WaterTrackingScreen() {
   );
 
   useEffect(() => {
-    loadWaterIntake();
     loadDailyTarget();
-    loadGlassSizes();
+    loadWaterIntake();
+    loadSelectedWaterCup();
+    loadCupSizes();
   }, []);
+
+  const loadDailyTarget = async () => {
+    try {
+      const savedTarget = await AsyncStorage.getItem(DAILY_TARGET_KEY);
+      savedTarget ? setDailyTarget(parseInt(savedTarget)) : setDailyTarget(DEFAULT_INTAKE_TARGET);
+    } catch (error) {
+      console.error('Error loading daily target:', error);
+    }
+  };
 
   const loadWaterIntake = async () => {
     try {
-      const savedIntake = await AsyncStorage.getItem(WATER_STORAGE_KEY);
+      const savedIntake = await AsyncStorage.getItem(WATER_INTAKE_KEY);
       if (savedIntake) {
-        setWaterIntake(parseInt(savedIntake));
+        setWaterIntake(JSON.parse(savedIntake));
       }
     } catch (error) {
       console.error('Error loading water intake:', error);
     }
   };
 
-  const loadDailyTarget = async () => {
+  const loadSelectedWaterCup = async () => {
     try {
-      const savedTarget = await AsyncStorage.getItem(TARGET_KEY);
-      savedTarget ? setDailyTarget(parseInt(savedTarget)) : setDailyTarget(DEFAULT_TARGET);
+      const savedCup = await AsyncStorage.getItem(SELECTED_WATER_CUP_KEY);
+      if (savedCup) {
+        setSelectedWaterCup(JSON.parse(savedCup));
+      }
     } catch (error) {
-      console.error('Error loading daily target:', error);
+      console.error('Error loading selected water cup:', error);
     }
   };
 
-  const loadGlassSizes = async () => {
+  const loadCupSizes = async () => {
     try {
-      const savedSizes = await AsyncStorage.getItem(GLASS_SIZES_KEY);
+      const savedSizes = await AsyncStorage.getItem(CUP_SIZES_KEY);
       if (savedSizes) {
         const parsedSizes = JSON.parse(savedSizes);
-        setGlassSizes(parsedSizes);
-        // Set initial glass size to the first available size if current size isn't in the list
-        const sizes = parsedSizes.map((g: any) => g.size);
-        if (!sizes.includes(glassSize)) {
-          setGlassSize(sizes[0] || 200);
-        }
+        setCupSizes(parsedSizes);        
       }
     } catch (error) {
       console.error('Error loading glass sizes:', error);
     }
   };
 
-  const saveWaterIntake = async (amount: number) => {
+  const saveWaterIntake = async () => {
     try {
-      await AsyncStorage.setItem(WATER_STORAGE_KEY, amount.toString());
-      setWaterIntake(amount);
+      await AsyncStorage.setItem(WATER_INTAKE_KEY, JSON.stringify(waterIntake));
     } catch (error) {
       console.error('Error saving water intake:', error);
     }
   };
 
-  const saveGlassSizes = async (newSizes: typeof DEFAULT_GLASS_SIZES) => {
+  const saveCupSizes = async (newSizes: typeof DEFAULT_CUP_SIZES) => {
     try {
-      await AsyncStorage.setItem(GLASS_SIZES_KEY, JSON.stringify(newSizes));
-      setGlassSizes(newSizes);
+      await AsyncStorage.setItem(CUP_SIZES_KEY, JSON.stringify(newSizes));
     } catch (error) {
       console.error('Error saving glass sizes:', error);
     }
   };
 
+  const saveSelectedWaterCup = async () => {
+    try {
+      await AsyncStorage.setItem(SELECTED_WATER_CUP_KEY, JSON.stringify(selectedWaterCup));
+    } catch (error) {
+      console.error('Error saving selected water cup:', error);
+    }
+  };
+
   const addWater = () => {
-    const newAmount = waterIntake + glassSize;
-    saveWaterIntake(newAmount);
+    selectedWaterCup.date = new Date();
+    waterIntake.push(selectedWaterCup);
+    calculateWaterIntakeInMl();
+    saveWaterIntake();
   };
 
   const removeWater = () => {
-    const newAmount = Math.max(0, waterIntake - glassSize);
-    saveWaterIntake(newAmount);
+    //TODO add logic to remove water based on date, now it will remove the last added
+    waterIntake.pop();
+    calculateWaterIntakeInMl();
+    saveWaterIntake();
   };
 
-  const selectGlassSize = (size: number, icon?: string) => {
-    setGlassSize(size);
-    if (icon) {
-      const newGlass = { size, icon, label: `${size}ml Glass` };
-      const newGlassSizes = [...glassSizes, newGlass].sort((a, b) => a.size - b.size);
-      saveGlassSizes(newGlassSizes);
-    }
-    setShowCustomInput(false);
-    setCustomSize('');
-    setShowSizeModal(false);
+  const selectCupSize = (waterCup: WaterCup) => {
+    setSelectedWaterCup(waterCup);
+    setShowCupSizeModal(false);
+    saveSelectedWaterCup();
   };
 
-  const removeGlassSize = (sizeToRemove: number) => {
-    const newGlassSizes = glassSizes.filter(g => g.size !== sizeToRemove);
-    saveGlassSizes(newGlassSizes);
-    // If the current glass size is removed, set to the default (200ml)
-    if (glassSize === sizeToRemove) {
-      setGlassSize(200);
+  const removeGlassSize = (waterCup: WaterCup) => {
+    const newGlassSizes = cupSizes.filter(e => e.size !== waterCup.size);
+    saveCupSizes(newGlassSizes);
+    // If the current glass size is removed, set to the default
+    if (selectedWaterCup.size === waterCup.size) {
+      setSelectedWaterCup(DEFAULT_CUP);
     }
   };
 
-  const handleRemoveGlass = (size: number) => {
+  const handleRemoveGlass = (waterCup: WaterCup) => {
     if (Platform.OS === 'web') {
-      const confirmRemove = window.confirm(`Are you sure you want to remove the ${size}ml glass?`);
+      const confirmRemove = window.confirm(`Are you sure you want to remove the ${waterCup.size}ml glass?`);
       if (confirmRemove) {
-        removeGlassSize(size);
+        removeGlassSize(waterCup);
       }
     } else {
       Alert.alert(
         'Remove Glass Size',
-        `Are you sure you want to remove the ${size}ml glass?`,
+        `Are you sure you want to remove the ${waterCup.size}ml glass?`,
         [
           {
             text: 'Cancel',
@@ -146,7 +146,7 @@ export default function WaterTrackingScreen() {
           },
           {
             text: 'Remove',
-            onPress: () => removeGlassSize(size),
+            onPress: () => removeGlassSize(waterCup),
             style: 'destructive'
           }
         ]
@@ -154,13 +154,12 @@ export default function WaterTrackingScreen() {
     }
   };
 
-  const getCurrentGlassIcon = () => {
-    const currentGlass = glassSizes.find(g => g.size === glassSize) || glassSizes[1];
-    return currentGlass.icon;
+  const calculateWaterIntakeInMl = () => {
+    setWaterIntakeInMl(waterIntake.reduce((total, glass) => total + glass.size, 0));
   };
 
   const getSortedGlasses = () => {
-    return [...glassSizes].sort((a, b) => a.size - b.size);
+    return [...cupSizes].sort((a, b) => a.size - b.size);
   };
 
   return (
@@ -168,13 +167,13 @@ export default function WaterTrackingScreen() {
       <Text style={styles.title}>Water Tracker</Text>
 
       <View style={styles.statsContainer}>
-        <Text style={styles.intakeText}>{waterIntake}ml</Text>
+        <Text style={styles.intakeText}>{waterIntakeInMl}ml</Text>
         <Text style={styles.targetText}>Daily Target: {dailyTarget}ml</Text>
         <View style={styles.progressContainer}>
           <View
             style={[
               styles.progressBar,
-              { width: `${Math.min((waterIntake / dailyTarget) * 100, 100)}%` }
+              { width: `${Math.min((waterIntakeInMl / dailyTarget) * 100, 100)}%` }
             ]}
           />
         </View>
@@ -190,11 +189,11 @@ export default function WaterTrackingScreen() {
 
         <TouchableOpacity
           style={styles.glassButton}
-          onPress={() => setShowSizeModal(true)}
+          onPress={() => setShowCupSizeModal(true)}
         >
           <View style={styles.glassIconContainer}>
-            <FontAwesome5 name={getCurrentGlassIcon()} size={48} color="#2196F3" />
-            <Text style={styles.glassText}>{glassSize}ml</Text>
+            <FontAwesome5 name={selectedWaterCup.icon} size={48} color="#2196F3" />
+            <Text style={styles.glassText}>{selectedWaterCup.size}ml</Text>
           </View>
           <View style={styles.selectSizeButton}>
             <Text style={styles.selectSizeText}>Change Size</Text>
@@ -213,17 +212,16 @@ export default function WaterTrackingScreen() {
       <Modal
         animationType="slide"
         transparent={true}
-        visible={showSizeModal}
-        onRequestClose={() => setShowSizeModal(false)}
+        visible={showCupSizeModal}
+        onRequestClose={() => setShowCupSizeModal(false)}
       >
         <TouchableOpacity
           style={styles.modalOverlay}
           activeOpacity={1}
           onPress={() => {
             if (!showCustomInput) {
-              setShowSizeModal(false);
+              setShowCupSizeModal(false);
               setShowCustomInput(false);
-              setCustomSize('');
             }
           }}
         >
@@ -234,22 +232,21 @@ export default function WaterTrackingScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.sizesContainer}
             >
-              {getSortedGlasses().map((glass) => (
-                <View key={glass.size} style={styles.sizeOptionContainer}>
+              {getSortedGlasses().map((cup) => (
+                <View key={cup.size} style={styles.sizeOptionContainer}>
                   <TouchableOpacity
                     style={[
                       styles.sizeOption,
-                      glassSize === glass.size && styles.selectedSize,
+                      selectedWaterCup.size === cup.size && styles.selectedSize,
                     ]}
-                    onPress={() => selectGlassSize(glass.size)}
+                    onPress={() => selectCupSize(cup)}
                   >
-                    <FontAwesome5 name={glass.icon} size={32} color="#2196F3" />
-                    <Text style={styles.sizeText}>{glass.size}ml</Text>
-                    <Text style={styles.sizeLabel}>{glass.label}</Text>
+                    <FontAwesome5 name={cup.icon} size={32} color="#2196F3" />
+                    <Text style={styles.sizeText}>{cup.size}ml</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.removeBadge}
-                    onPress={() => handleRemoveGlass(glass.size)}
+                    onPress={() => handleRemoveGlass(cup)}
                   >
                     <FontAwesome5 name="times" size={10} color="white" />
                   </TouchableOpacity>
@@ -261,10 +258,9 @@ export default function WaterTrackingScreen() {
               >
                 <FontAwesome5 name="plus-circle" size={32} color="#2196F3" />
                 <Text style={styles.sizeText}>Custom</Text>
-                <Text style={styles.sizeLabel}>Size</Text>
               </TouchableOpacity>
             </ScrollView>
-            {showCustomInput && (
+            {/* {showCustomInput && (
               <View style={styles.customInputContainer}>
                 <View style={styles.inputRow}>
                   <TextInput
@@ -272,7 +268,6 @@ export default function WaterTrackingScreen() {
                     keyboardType="number-pad"
                     placeholder="Enter size in ml"
                     value={customSize}
-                    onChangeText={setCustomSize}
                   />
                   <TouchableOpacity
                     style={[
@@ -283,10 +278,10 @@ export default function WaterTrackingScreen() {
                     onPress={() => {
                       const size = parseInt(customSize);
                       if (size > 0 && size <= 2000) {
-                        selectGlassSize(size, selectedIcon);
+                        selectCupSize(size, selectedIcon);
                         setShowCustomInput(false);
                         setCustomSize('');
-                        setShowSizeModal(false);
+                        setShowCupSizeModal(false);
                       } else {
                         Alert.alert('Invalid Size', 'Please enter a size between 1 and 2000 ml');
                       }
@@ -302,7 +297,7 @@ export default function WaterTrackingScreen() {
                   <Text style={styles.iconSelectorTitle}>Choose an icon:</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     <View style={styles.iconGrid}>
-                      {AVAILABLE_ICONS.map((icon) => (
+                      {Object.values(WaterCupIcons).map((icon) => (
                         <TouchableOpacity
                           key={icon}
                           style={[
@@ -322,7 +317,7 @@ export default function WaterTrackingScreen() {
                   </ScrollView>
                 </View>
               </View>
-            )}
+            )} */}
           </View>
         </TouchableOpacity>
       </Modal>
@@ -503,11 +498,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#2196F3',
-  },
-  sizeLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
   },
   iconSelectorContainer: {
     marginTop: 10,
