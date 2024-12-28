@@ -72,7 +72,7 @@ export default function WaterTrackingScreen() {
       const savedSizes = await AsyncStorage.getItem(CUP_SIZES_KEY);
       if (savedSizes) {
         const parsedSizes = JSON.parse(savedSizes);
-        setCupSizes(parsedSizes);        
+        setCupSizes(parsedSizes);
       }
     } catch (error) {
       console.error('Error loading glass sizes:', error);
@@ -107,7 +107,7 @@ export default function WaterTrackingScreen() {
     const newWaterCup: WaterCup = { ...selectedWaterCup, date: new Date() };
     const updatedIntake: WaterCup[] = [...waterIntake, newWaterCup];
     setWaterIntake(updatedIntake);
-    saveWaterIntake(updatedIntake)    
+    saveWaterIntake(updatedIntake)
   };
 
   const removeWater = () => {
@@ -269,17 +269,11 @@ export default function WaterTrackingScreen() {
             </ScrollView>
             {showCustomInput && (
               <View style={styles.customInputContainer}>
-                <View style={styles.inputRow}>
-                  <TextInput
-                    style={styles.customInput}
-                    keyboardType="number-pad"
-                    placeholder="Enter size in ml"
-                    value={customSize}
-                    onChangeText={setCustomSize}
-                  />
-                  <TouchableOpacity
+                <View style={styles.buttonContainer}>
+                <TouchableOpacity
                     style={[
-                      styles.customSizeButton,
+                      styles.modalButton,
+                      styles.addButton,
                       !customSize && styles.customSizeButtonDisabled
                     ]}
                     disabled={!customSize}
@@ -298,11 +292,30 @@ export default function WaterTrackingScreen() {
                       }
                     }}
                   >
-                    <Text style={[
-                      styles.customSizeButtonText,
-                      !customSize && styles.customSizeButtonTextDisabled
-                    ]}>Add</Text>
+                    <Text style={styles.addButtonText}>Add</Text>
                   </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.modalButton,
+                      styles.cancelButton
+                    ]}
+                    onPress={() => {
+                      setShowCustomInput(false);
+                      setCustomSize('');
+                      setCustomIcon(DEFAULT_CUP_SIZES[0].icon);
+                    }}
+                  >
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.inputRow}>
+                  <TextInput
+                    style={styles.customInput}
+                    keyboardType="number-pad"
+                    placeholder="Enter size in ml"
+                    value={customSize}
+                    onChangeText={setCustomSize}
+                  />
                 </View>
                 <View style={styles.iconSelectorContainer}>
                   <Text style={styles.iconSelectorTitle}>Choose an icon:</Text>
@@ -450,36 +463,54 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   customInputContainer: {
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    padding: 15,
   },
   inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
+    marginTop: 10,
+    marginBottom: 10,
   },
   customInput: {
-    flex: 1,
-    height: 40,
+    height: 44,
     borderWidth: 1,
-    borderColor: '#2196F3',
+    borderColor: '#ccc',
     borderRadius: 8,
     paddingHorizontal: 10,
-    marginRight: 10,
   },
-  customSizeButton: {
-    backgroundColor: '#2196F3',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  modalButton: {
+    flex: 1,
+    minHeight: 44,
     borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+  },
+  cancelButton: {
+    backgroundColor: '#f5f5f5',
+    borderWidth: 1,
+    borderColor: '#ccc',
+  },
+  cancelButtonText: {
+    color: '#666',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  addButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  addButton: {
+    backgroundColor: '#2196F3',
   },
   customSizeButtonDisabled: {
     backgroundColor: '#cccccc',
-  },
-  customSizeButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
   },
   customSizeButtonTextDisabled: {
     color: '#666666',
