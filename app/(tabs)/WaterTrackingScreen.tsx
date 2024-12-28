@@ -5,6 +5,7 @@ import { FontAwesome5 } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { DEFAULT_INTAKE_TARGET, DEFAULT_CUP, DEFAULT_CUP_SIZES } from '@/constants/Defaults';
 import { WaterCup } from '@/types/WaterCup';
+import { WaterCupIcons } from '@/constants/enums/WaterCupIcons.enum';
 
 const WATER_INTAKE_KEY = '@water_intake';
 const DAILY_TARGET_KEY = '@daily_target';
@@ -18,6 +19,8 @@ export default function WaterTrackingScreen() {
   const [selectedWaterCup, setSelectedWaterCup] = useState<WaterCup>(DEFAULT_CUP);
   const [waterIntake, setWaterIntake] = useState<WaterCup[]>([]);
   const [cupSizes, setCupSizes] = useState<WaterCup[]>(DEFAULT_CUP_SIZES);
+  const [customSize, setCustomSize] = useState('');
+  const [customIcon, setCustomIcon] = useState<WaterCupIcons>(DEFAULT_CUP_SIZES[0].icon);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -120,9 +123,16 @@ export default function WaterTrackingScreen() {
     saveSelectedWaterCup(waterCup);
   };
 
+  const addCustomCup = (waterCup: WaterCup) => {
+    const newCupSizes = [...cupSizes, waterCup];
+    setCupSizes(newCupSizes);
+    saveCupSizes(newCupSizes);
+  };
+
   const removeCupSize = (waterCup: WaterCup) => {
-    const newGlassSizes = cupSizes.filter(e => e.size !== waterCup.size);
-    saveCupSizes(newGlassSizes);
+    const newCupSizes = cupSizes.filter(e => e.size !== waterCup.size);
+    setCupSizes(newCupSizes);
+    saveCupSizes(newCupSizes);
     // If the current glass size is removed, set to the default
     if (selectedWaterCup.size === waterCup.size) {
       setSelectedWaterCup(DEFAULT_CUP);
@@ -257,7 +267,7 @@ export default function WaterTrackingScreen() {
                 <Text style={styles.sizeText}>Custom</Text>
               </TouchableOpacity>
             </ScrollView>
-            {/* {showCustomInput && (
+            {showCustomInput && (
               <View style={styles.customInputContainer}>
                 <View style={styles.inputRow}>
                   <TextInput
@@ -265,6 +275,7 @@ export default function WaterTrackingScreen() {
                     keyboardType="number-pad"
                     placeholder="Enter size in ml"
                     value={customSize}
+                    onChangeText={setCustomSize}
                   />
                   <TouchableOpacity
                     style={[
@@ -274,11 +285,14 @@ export default function WaterTrackingScreen() {
                     disabled={!customSize}
                     onPress={() => {
                       const size = parseInt(customSize);
-                      if (size > 0 && size <= 2000) {
-                        selectCupSize(size, selectedIcon);
+                      if (size > 0) {
+                        const newWaterCup = new WaterCup(size, customIcon, new Date());
+                        selectCupSize(newWaterCup);
+                        addCustomCup(newWaterCup);
                         setShowCustomInput(false);
-                        setCustomSize('');
                         setShowCupSizeModal(false);
+                        setCustomSize('');
+                        setCustomIcon(DEFAULT_CUP_SIZES[0].icon);
                       } else {
                         Alert.alert('Invalid Size', 'Please enter a size between 1 and 2000 ml');
                       }
@@ -299,14 +313,14 @@ export default function WaterTrackingScreen() {
                           key={icon}
                           style={[
                             styles.iconOption,
-                            selectedIcon === icon && styles.selectedIconOption
+                            customIcon === icon && styles.selectedIconOption
                           ]}
-                          onPress={() => setSelectedIcon(icon)}
+                          onPress={() => setCustomIcon(icon)}
                         >
                           <FontAwesome5
                             name={icon}
                             size={24}
-                            color={selectedIcon === icon ? '#2196F3' : '#666'}
+                            color={customIcon === icon ? '#2196F3' : '#666'}
                           />
                         </TouchableOpacity>
                       ))}
@@ -314,7 +328,7 @@ export default function WaterTrackingScreen() {
                   </ScrollView>
                 </View>
               </View>
-            )} */}
+            )}
           </View>
         </TouchableOpacity>
       </Modal>
