@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, TextInput, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, TextInput, Alert, Platform, Pressable } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -221,20 +221,22 @@ export default function WaterTrackingScreen() {
         animationType="slide"
         transparent={true}
         visible={showCupSizeModal}
-        onRequestClose={() => setShowCupSizeModal(false)}
+        onRequestClose={() => {
+          setShowCupSizeModal(false);
+          setShowCustomInput(false);
+        }}
       >
-        <TouchableOpacity
+        <Pressable
           style={styles.modalOverlay}
-          activeOpacity={1}
           onPress={() => {
-            if (!showCustomInput) {
-              setShowCupSizeModal(false);
-              setShowCustomInput(false);
-            }
+            setShowCupSizeModal(false);
+            setShowCustomInput(false);
           }}
         >
-          <View style={styles.bottomSheet} onStartShouldSetResponder={() => true}>
-            <View style={styles.bottomSheetHandle} />
+          <Pressable style={styles.bottomSheet}>
+            <View 
+              style={styles.bottomSheetHandle} 
+            />
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -343,8 +345,8 @@ export default function WaterTrackingScreen() {
                 </View>
               </View>
             )}
-          </View>
-        </TouchableOpacity>
+          </Pressable>
+        </Pressable>
       </Modal>
     </View>
   );
