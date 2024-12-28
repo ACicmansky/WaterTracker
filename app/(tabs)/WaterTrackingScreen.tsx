@@ -17,7 +17,6 @@ export default function WaterTrackingScreen() {
   const [dailyTarget, setDailyTarget] = useState(DEFAULT_INTAKE_TARGET);
   const [selectedWaterCup, setSelectedWaterCup] = useState<WaterCup>(DEFAULT_CUP);
   const [waterIntake, setWaterIntake] = useState<WaterCup[]>([]);
-  const [waterIntakeInMl, setWaterIntakeInMl] = useState<number>(0);
   const [cupSizes, setCupSizes] = useState<WaterCup[]>(DEFAULT_CUP_SIZES);
 
   useFocusEffect(
@@ -46,7 +45,8 @@ export default function WaterTrackingScreen() {
     try {
       const savedIntake = await AsyncStorage.getItem(WATER_INTAKE_KEY);
       if (savedIntake) {
-        setWaterIntake(JSON.parse(savedIntake));
+        const parsedIntake = JSON.parse(savedIntake);
+        setWaterIntake(Array.isArray(parsedIntake) ? parsedIntake : []);
       }
     } catch (error) {
       console.error('Error loading water intake:', error);
@@ -76,9 +76,9 @@ export default function WaterTrackingScreen() {
     }
   };
 
-  const saveWaterIntake = async () => {
+  const saveWaterIntake = async (intake: WaterCup[]) => {
     try {
-      await AsyncStorage.setItem(WATER_INTAKE_KEY, JSON.stringify(waterIntake));
+      await AsyncStorage.setItem(WATER_INTAKE_KEY, JSON.stringify(intake));
     } catch (error) {
       console.error('Error saving water intake:', error);
     }
@@ -92,40 +92,41 @@ export default function WaterTrackingScreen() {
     }
   };
 
-  const saveSelectedWaterCup = async () => {
+  const saveSelectedWaterCup = async (waterCup: WaterCup) => {
     try {
-      await AsyncStorage.setItem(SELECTED_WATER_CUP_KEY, JSON.stringify(selectedWaterCup));
+      await AsyncStorage.setItem(SELECTED_WATER_CUP_KEY, JSON.stringify(waterCup));
     } catch (error) {
       console.error('Error saving selected water cup:', error);
     }
   };
 
   const addWater = () => {
-    selectedWaterCup.date = new Date();
-    waterIntake.push(selectedWaterCup);
-    calculateWaterIntakeInMl();
-    saveWaterIntake();
+    const newWaterCup: WaterCup = { ...selectedWaterCup, date: new Date() };
+    const updatedIntake: WaterCup[] = [...waterIntake, newWaterCup];
+    setWaterIntake(updatedIntake);
+    saveWaterIntake(updatedIntake)    
   };
 
   const removeWater = () => {
-    //TODO add logic to remove water based on date, now it will remove the last added
-    waterIntake.pop();
-    calculateWaterIntakeInMl();
-    saveWaterIntake();
+    //TODO add logic to remove water based on selection, now it will remove the last added
+    const updatedIntake: WaterCup[] = waterIntake.slice(0, -1);
+    setWaterIntake(updatedIntake);
+    saveWaterIntake(updatedIntake);
   };
 
   const selectCupSize = (waterCup: WaterCup) => {
-    setSelectedWaterCup(waterCup);
     setShowCupSizeModal(false);
-    saveSelectedWaterCup();
+    setSelectedWaterCup(waterCup);
+    saveSelectedWaterCup(waterCup);
   };
 
-  const removeGlassSize = (waterCup: WaterCup) => {
+  const removeCupSize = (waterCup: WaterCup) => {
     const newGlassSizes = cupSizes.filter(e => e.size !== waterCup.size);
     saveCupSizes(newGlassSizes);
     // If the current glass size is removed, set to the default
     if (selectedWaterCup.size === waterCup.size) {
       setSelectedWaterCup(DEFAULT_CUP);
+      saveSelectedWaterCup(DEFAULT_CUP);
     }
   };
 
@@ -133,7 +134,7 @@ export default function WaterTrackingScreen() {
     if (Platform.OS === 'web') {
       const confirmRemove = window.confirm(`Are you sure you want to remove the ${waterCup.size}ml glass?`);
       if (confirmRemove) {
-        removeGlassSize(waterCup);
+        removeCupSize(waterCup);
       }
     } else {
       Alert.alert(
@@ -146,7 +147,7 @@ export default function WaterTrackingScreen() {
           },
           {
             text: 'Remove',
-            onPress: () => removeGlassSize(waterCup),
+            onPress: () => removeCupSize(waterCup),
             style: 'destructive'
           }
         ]
@@ -154,11 +155,7 @@ export default function WaterTrackingScreen() {
     }
   };
 
-  const calculateWaterIntakeInMl = () => {
-    setWaterIntakeInMl(waterIntake.reduce((total, glass) => total + glass.size, 0));
-  };
-
-  const getSortedGlasses = () => {
+  const getSortedCups = () => {
     return [...cupSizes].sort((a, b) => a.size - b.size);
   };
 
@@ -167,13 +164,13 @@ export default function WaterTrackingScreen() {
       <Text style={styles.title}>Water Tracker</Text>
 
       <View style={styles.statsContainer}>
-        <Text style={styles.intakeText}>{waterIntakeInMl}ml</Text>
+        <Text style={styles.intakeText}>{waterIntake.reduce((total, cup) => total + cup.size, 0)}ml</Text>
         <Text style={styles.targetText}>Daily Target: {dailyTarget}ml</Text>
         <View style={styles.progressContainer}>
           <View
             style={[
               styles.progressBar,
-              { width: `${Math.min((waterIntakeInMl / dailyTarget) * 100, 100)}%` }
+              { width: `${Math.min((waterIntake.reduce((total, cup) => total + cup.size, 0) / dailyTarget) * 100, 100)}%` }
             ]}
           />
         </View>
@@ -232,7 +229,7 @@ export default function WaterTrackingScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.sizesContainer}
             >
-              {getSortedGlasses().map((cup) => (
+              {getSortedCups().map((cup) => (
                 <View key={cup.size} style={styles.sizeOptionContainer}>
                   <TouchableOpacity
                     style={[

@@ -10,12 +10,4 @@ export class WaterCup {
         this.icon = icon;
         this.date = date;
     }
-
-    compareWithoutDate(other: WaterCup): boolean {
-        return this.size === other.size && this.icon === other.icon;
-    }
-
-    compare(other: WaterCup): boolean {
-        return this.compareWithoutDate(other) && this.date.getTime() === other.date.getTime();
-    }
 }
