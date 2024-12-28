@@ -119,6 +119,7 @@ export default function WaterTrackingScreen() {
 
   const selectCupSize = (waterCup: WaterCup) => {
     setShowCupSizeModal(false);
+    setShowCustomInput(false);
     setSelectedWaterCup(waterCup);
     saveSelectedWaterCup(waterCup);
   };
@@ -270,7 +271,7 @@ export default function WaterTrackingScreen() {
             {showCustomInput && (
               <View style={styles.customInputContainer}>
                 <View style={styles.buttonContainer}>
-                <TouchableOpacity
+                  <TouchableOpacity
                     style={[
                       styles.modalButton,
                       styles.addButton,
@@ -452,7 +453,17 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 25,
     padding: 20,
     paddingBottom: 30,
-    maxHeight: '40%',
+    maxHeight: '80%',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    position: 'relative',
+    zIndex: 1000,
   },
   bottomSheetHandle: {
     width: 40,
@@ -464,6 +475,19 @@ const styles = StyleSheet.create({
   },
   customInputContainer: {
     padding: 15,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    marginTop: 10,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.23,
+    shadowRadius: 2.62,
+    position: 'relative',
+    zIndex: 999,
   },
   inputRow: {
     marginTop: 10,
