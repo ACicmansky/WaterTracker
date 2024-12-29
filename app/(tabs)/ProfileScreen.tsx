@@ -4,6 +4,7 @@ import { Picker } from '@react-native-picker/picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { calculateDailyWaterTarget } from '@/utils/waterCalculations';
 import { ClimateOptions } from '@/constants/enums/ClimateOptions.enum';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 const WEIGHT_KEY = '@user_weight';
 const CLIMATE_KEY = '@user_climate';
@@ -103,63 +104,70 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Profile Settings</Text>
-      
-      {waterTarget > 0 && (
-        <View style={styles.targetContainer}>
-          <Text style={styles.targetLabel}>Recommended Daily Water Intake:</Text>
-          <Text style={styles.targetValue}>{waterTarget}ml</Text>
+      <View style={styles.section}>
+        <Text style={styles.title}>Profile Settings</Text>
+        
+        {waterTarget > 0 && (
+          <View style={styles.targetContainer}>
+            <Text style={styles.targetLabel}>Recommended Daily Water Intake:</Text>
+            <Text style={styles.targetValue}>{waterTarget}ml</Text>
+          </View>
+        )}
+        
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Gender</Text>
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={gender}
+              onValueChange={saveGender}
+              style={styles.picker}
+            >
+              {GENDER_OPTIONS.map((option) => (
+                <Picker.Item
+                  key={option.value}
+                  label={option.label}
+                  value={option.value}
+                />
+              ))}
+            </Picker>
+          </View>
         </View>
-      )}
-      
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Gender</Text>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={gender}
-            onValueChange={saveGender}
-            style={styles.picker}
-          >
-            {GENDER_OPTIONS.map((option) => (
-              <Picker.Item
-                key={option.value}
-                label={option.label}
-                value={option.value}
-              />
-            ))}
-          </Picker>
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Weight (kg)</Text>
+          <TextInput
+            style={styles.input}
+            value={weight}
+            onChangeText={saveWeight}
+            placeholder="Enter your weight"
+            keyboardType="numeric"
+            maxLength={5}
+          />
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Climate</Text>
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={climate}
+              onValueChange={saveClimate}
+              style={styles.picker}
+            >
+              {CLIMATE_OPTIONS.map((option) => (
+                <Picker.Item
+                  key={option.value}
+                  label={option.label}
+                  value={option.value}
+                />
+              ))}
+            </Picker>
+          </View>
         </View>
       </View>
-
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Weight (kg)</Text>
-        <TextInput
-          style={styles.input}
-          value={weight}
-          onChangeText={saveWeight}
-          placeholder="Enter your weight"
-          keyboardType="numeric"
-          maxLength={5}
-        />
-      </View>
-
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Climate</Text>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={climate}
-            onValueChange={saveClimate}
-            style={styles.picker}
-          >
-            {CLIMATE_OPTIONS.map((option) => (
-              <Picker.Item
-                key={option.value}
-                label={option.label}
-                value={option.value}
-              />
-            ))}
-          </Picker>
-        </View>
+      <View style={styles.divider} />
+      <View style={styles.settingsSection}>
+        <Text style={styles.sectionTitle}>Preferences</Text>
+        <ThemeToggle />
       </View>
     </View>
   );
@@ -170,6 +178,9 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     backgroundColor: '#fff',
+  },
+  section: {
+    marginBottom: 20,
   },
   title: {
     fontSize: 24,
@@ -228,5 +239,22 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#2196F3',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#ddd',
+    marginVertical: 16,
+  },
+  settingsSection: {
+    backgroundColor: '#f9f9f9',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#2196F3',
+    marginBottom: 16,
   },
 });
